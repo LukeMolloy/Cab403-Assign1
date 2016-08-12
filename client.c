@@ -15,7 +15,9 @@
 
 	#define RETURNED_ERROR -1
 
-void Receive_Array_Int_Data(int socket_identifier, int size) {
+	#define PORT 54321
+
+/*void Receive_Array_Int_Data(int socket_identifier, int size) {
     int number_of_bytes, i=0;
     uint16_t statistics;
 
@@ -33,51 +35,22 @@ void Receive_Array_Int_Data(int socket_identifier, int size) {
 	for (i=0; i < ARRAY_SIZE; i++) {
 		printf("Array[%d] = %d\n", i, results[i]);
 	}
-}
+}*/
+
+
 
 int main(int argc, char *argv[]) {
+	char username;
+	printf("==========================================\n\n");
+	printf("Welcome to the Online ATM System\n\n");
+	printf("==========================================\n\n\n\n");
+	printf("You are required to logon with your registered Username and PIN\n\n");
+	printf("Please enter your username--> ");
+	scanf("%c", &username);
+	printf("%c", username);
+	//printf("Please enter your password--> \n");
 
-	int sockfd, numbytes, i=0;  
-	char buf[MAXDATASIZE];
-	struct hostent *he;
-	struct sockaddr_in their_addr; /* connector's address information */
 
-	if (argc != 3) {
-		fprintf(stderr,"usage: client_hostname port_number\n");
-		exit(1);
-	}
-
-	if ((he=gethostbyname(argv[1])) == NULL) {  /* get the host info */
-		herror("gethostbyname");
-		exit(1);
-	}
-
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		perror("socket");
-		exit(1);
-	}
-
-	their_addr.sin_family = AF_INET;      /* host byte order */
-	their_addr.sin_port = htons(PORT);    /* short, network byte order */
-	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
-	bzero(&(their_addr.sin_zero), 8);     /* zero the rest of the struct */
-
-	if (connect(sockfd, (struct sockaddr *)&their_addr, \
-	sizeof(struct sockaddr)) == -1) {
-		perror("connect");
-		exit(1);
-	}
-
-	if ((numbytes=recv(sockfd, buf, MAXDATASIZE, 0)) == -1) {
-		perror("recv");
-		exit(1);
-	}
-
-	buf[numbytes] = '\0';
-
-	printf("Received: %s",buf);
-
-	close(sockfd);
 
 	return 0;
 }
