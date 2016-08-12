@@ -8,49 +8,107 @@
 #include <sys/socket.h> 
 #include <unistd.h>
 
-
 	#define MAXDATASIZE 100 /* max number of bytes we can get at once */
 
 	#define ARRAY_SIZE 30
 
-	#define RETURNED_ERROR -1
 
-	#define PORT 54321
-
-/*void Receive_Array_Int_Data(int socket_identifier, int size) {
-    int number_of_bytes, i=0;
-    uint16_t statistics;
-
-	int *results = malloc(sizeof(int)*ARRAY_SIZE);
-
-	for (i=0; i < size; i++) {
-		if ((number_of_bytes=recv(socket_identifier, &statistics, sizeof(uint16_t), 0))
-		         == RETURNED_ERROR) {
-			perror("recv");
-			exit(EXIT_FAILURE);			
-		    
-		}
-		results[i] = ntohs(statistics);
+void Send_Array_Data(int socket_id, int *myArray) {
+	int i=0;
+	uint16_t statistics;  
+	for (i = 0; i < ARRAY_SIZE; i++) {
+		statistics = htons(myArray[i]);
+		send(socket_id, &statistics, sizeof(uint16_t), 0);
 	}
-	for (i=0; i < ARRAY_SIZE; i++) {
-		printf("Array[%d] = %d\n", i, results[i]);
-	}
-}*/
-
-
+}
 
 int main(int argc, char *argv[]) {
-	char username;
+	int sockfd, numbytes, i=0;  
+	char buf[MAXDATASIZE];
+	struct hostent *he;
+	struct sockaddr_in their_addr; /* connector's address information */
+
+	if (argc != 3) {
+		fprintf(stderr,"usage: client_hostname port_number\n");
+		exit(1);
+	}
+
+	if ((he=gethostbyname(argv[1])) == NULL) {  /* get the host info */
+		herror("gethostbyname");
+		exit(1);
+	}
+
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+		perror("socket");
+		exit(1);
+	}
+
+
+	their_addr.sin_family = AF_INET;      /* host byte order */
+	their_addr.sin_port = htons(atoi(argv[2]));    /* short, network byte order */
+	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+	bzero(&(their_addr.sin_zero), 8);     /* zero the rest of the struct */
+
+	if (connect(sockfd, (struct sockaddr *)&their_addr, \
+	sizeof(struct sockaddr)) == -1) {
+		perror("connect");
+		exit(1);
+	}
+
+	/* Create an array of squares of first 30 whole numbers */
+	int simpleArray[ARRAY_SIZE] = {0};
+	for (i = 0; i < ARRAY_SIZE; i++) {
+		simpleArray[i] = i * i;
+	}
+
+	Send_Array_Data(sockfd, simpleArray);
+
+	/* Receive message back from server */
+	if ((numbytes=recv(sockfd, buf, MAXDATASIZE, 0)) == -1) {
+		perror("recv");
+		exit(1);
+	}
+
+	buf[numbytes] = '\0';
+
+	buf[numbytes] = '\0';
+
+	printf("Received: %s",buf);
+
+
+char *username;
 	printf("==========================================\n\n");
 	printf("Welcome to the Online ATM System\n\n");
 	printf("==========================================\n\n\n\n");
 	printf("You are required to logon with your registered Username and PIN\n\n");
 	printf("Please enter your username--> ");
-	scanf("%c", &username);
-	printf("%c", username);
-	//printf("Please enter your password--> \n");
+	scanf("%s", username);
+
+
+
+
+	close(sockfd);
+
+
 
 
 
 	return 0;
 }
+
+
+/*int main(int argc, char *argv[]) {
+	char *username;
+	printf("==========================================\n\n");
+	printf("Welcome to the Online ATM System\n\n");
+	printf("==========================================\n\n\n\n");
+	printf("You are required to logon with your registered Username and PIN\n\n");
+	printf("Please enter your username--> ");
+	scanf("%s", username);
+
+	//printf("Please enter your password--> \n");
+
+
+
+	return 0;
+}*/
