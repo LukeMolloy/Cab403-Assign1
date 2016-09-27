@@ -13,31 +13,18 @@
 	#define ARRAY_SIZE 30
 
 	#define RETURNED_ERROR -1
+	char username [50];
 
 
-void Receive_Array_Int_Data(int socket_identifier, int size) {
-    int number_of_bytes, i=0;
-    uint16_t statistics;
 
-	int *results = malloc(sizeof(int)*ARRAY_SIZE);
-
-	for (i=0; i < size; i++) {
-		if ((number_of_bytes=recv(socket_identifier, &statistics, sizeof(uint16_t), 0))
-		         == RETURNED_ERROR) {
-			perror("recv");
-			exit(EXIT_FAILURE);			
-		    
-		}
-		results[i] = ntohs(statistics);
-	}
-	for (i=0; i < ARRAY_SIZE; i++) {
-		printf("Array[%d] = %d\n", i, results[i]);
-	}
-}
 
 int main(int argc, char *argv[]) {
 	int sockfd, numbytes, i=0;  
 	char buf[MAXDATASIZE];
+	/* Thread and thread attributes */
+	pthread_t client_thread;
+	pthread_attr_t attr;
+
 	struct hostent *he;
 	struct sockaddr_in their_addr; /* connector's address information */
 
@@ -68,36 +55,43 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	/* Receive data from server */
-	Receive_Array_Int_Data(sockfd, ARRAY_SIZE);
 
-		/* Receive message back from server */
-	if ((numbytes=recv(sockfd, buf, MAXDATASIZE, 0)) == -1) {
-		perror("recv");
-		exit(1);
-	}
 
 	buf[numbytes] = '\0';
 
-	printf("Received: %s",buf);
 
-	close(sockfd);
 
-	return 0;
-}
 
-/*int main(int argc, char *argv[]) {
-	char *username;
 	printf("==========================================\n\n");
 	printf("Welcome to the Online ATM System\n\n");
 	printf("==========================================\n\n\n\n");
 	printf("You are required to logon with your registered Username and PIN\n\n");
 	printf("Please enter your username--> ");
-	scanf("%s", username);
+	scanf("%s", &username);
+	printf("%s\n", username);
+	 
 
-	//printf("Please enter your password--> \n");
+	//int clientSocket, portNum, nBytes;	
 
+	//while(1) {
+	//	scanf("%s", &username);
+	//	printf("%s\n", username);
+	//	fgets(username, 50, stdin);
+	//	nBytes = strlen(username) + 1;
+	//	send(clientSocket, username, nBytes, 0); 
+		//recv(clientSocket, username, 50, 0);
+	//}
 
-
+	
+	if (username != NULL) {
+		printf("Please enter your password--> \n");
+	}
+	int blah = 5;
+	send(socket_id, &blah, sizeof(uint16_t), 0);
+	close(sockfd);
 	return 0;
+}
+
+/*int main(int argc, char *argv[]) {
+	
 }*/

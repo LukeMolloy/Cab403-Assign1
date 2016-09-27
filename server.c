@@ -171,7 +171,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("server starts listnening ...\n");
-
+	
+	char username[50];
+	char reusername[50];
 	/* repeat: accept, send, close the connection */
 	/* for every accepted connection, use a sepetate process or thread to serve it */
 	while(1) {  /* main accept() loop */
@@ -186,11 +188,13 @@ int main(int argc, char *argv[]) {
 
 		//Create a thread to accept client
 				
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_create(&client_thread, &attr, Send_Array_Data, new_fd);
+		//pthread_attr_t attr;
+		//pthread_attr_init(&attr);
+		//pthread_create(&client_thread, &attr, Send_Array_Data, new_fd);
 
-		pthread_join(client_thread,NULL);
+		//pthread_join(client_thread,NULL);
+		reusername =  recv(clientSocket, username, sizeof(username), 0);
+		printf("%s", username);
 
 	}
 
