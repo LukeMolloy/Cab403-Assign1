@@ -1,36 +1,55 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <arpa/inet.h>
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <errno.h> 
+#include <string.h> 
+#include <sys/types.h> 
+#include <netinet/in.h> 
+#include <sys/socket.h> 
+#include <sys/wait.h> 
+#include <unistd.h>
+#include <errno.h>
 
-#define BUFFER_SIZE 1024
-char details [2];
+const char delimiters[] = "	 \n";
+char *Authentication[11][3];
 
-int main(int argc, char **argv) {
-	const char *file = "authentication.txt";
-	const char *delimiter_characters = ",";
-	FILE *input_file = fopen(file, "r");
-	char buffer[ BUFFER_SIZE ];
-	char *last_token;
+void tokenAuth(){
+	FILE  *file;
+	char *string, *found;
 
-	if (input_file == NULL) {
+	file = fopen("Authentication.txt", "r");
 	
-		fprintf(stderr, "No file can be displayed", file);
-	}
-	else {
-		while(fgets(buffer, BUFFER_SIZE, input_file) != NULL) {
-			last_token = strtok (buffer, delimiter_characters);
-			while (last_token != NULL ){
-				printf("%s\n", last_token);
-				last_token = strok (NULL, delimiter_characters);
-			}
-		}
+	char line[256];
+	int x = 0;
 
-	
-	fclose(input_file);
-	
-	}
+	while (fgets(line, sizeof(line), file)) {
 
-	return 0;
-				
-	
+    	string = strdup(line);
+
+    	found = strtok (string, delimiters);
+    	Authentication[x][0]=found;
+
+    	found = strtok (NULL, delimiters);
+    	Authentication[x][1]=found;
+
+    	found = strtok (NULL, delimiters);
+    	Authentication[x][2]=found;
+    	
+    	x++;
+    }
+    fclose(file);
+}
+
+
+int main(int argc, char *argv[]) {
+
+	tokenAuth();
+
+    /*for(int x = 0; x<11; x++){
+    	printf("%s\n", "");
+    	for(int y = 0; y<3; y++){
+    		printf("%s\n", Authentication[x][y]);
+    	}
+    }*/
+
 }
