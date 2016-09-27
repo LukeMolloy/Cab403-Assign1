@@ -122,31 +122,19 @@ void tokenClient(){
     fclose(file);  
 }
 
+void Send_Array_Data(int socket_id) {
 
-int *Receive_Array_Int_Data(int socket_identifier, int size) {
-    int number_of_bytes, i=0;
-    uint16_t statistics;
-	
-	int *results = malloc(sizeof(int)*size);
-	for (i=0; i < size; i++) {
-		if ((number_of_bytes=recv(socket_identifier, &statistics, sizeof(uint16_t), 0))
-		         == RETURNED_ERROR) {
-			perror("recv");
-			exit(EXIT_FAILURE);			
-		    
-		}
-		results[i] = ntohs(statistics);
-	}
-	return results;
+	uint16_t statistics = 0000;  
+	send(socket_id, &statistics, sizeof(uint16_t), 0);
 }
 
-
-
-
-
-
 int main(int argc, char *argv[]) {
-int sockfd, new_fd;  /* listen on sock_fd, new connection on new_fd */
+	
+	pthread_t client_thread;
+	pthread_attr_t attr;
+
+
+	int sockfd, new_fd;  /* listen on sock_fd, new connection on new_fd */
 	struct sockaddr_in my_addr;    /* my address information */
 	struct sockaddr_in their_addr; /* connector's address information */
 	socklen_t sin_size;
@@ -196,28 +184,18 @@ int sockfd, new_fd;  /* listen on sock_fd, new connection on new_fd */
 		}
 		printf("server: got connection from %s\n", \
 			inet_ntoa(their_addr.sin_addr));
-		if (!fork()) { /* this is the child process */
 
-			/* Call method to recieve array data */
-			int *results = Receive_Array_Int_Data(new_fd,  ARRAY_SIZE);	
+		//Create a thread to accept client
+				
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_create(&client_thread, &attr, Send_Array_Data, new_fd);
 
-			/* Print out the array results sent by client */
-			for (i=0; i < ARRAY_SIZE; i++) {
-				printf("Value of index[%d] = %d\n", i, results[i]);
-			}			
+		pthread_join(client_thread,NULL);
 
-			free(results);
-
-			if (send(new_fd, "All of array data received by server\n", 40 , 0) == -1)
-				perror("send");
-			close(new_fd);
-			exit(0);
-		}
-		close(new_fd);  /* parent doesn't need this */
-
-		while(waitpid(-1,NULL,WNOHANG) > 0); /* clean up child processes */
 	}
 
+	close(new_fd);  
 
     return 0;
 }
