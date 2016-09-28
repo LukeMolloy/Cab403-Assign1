@@ -124,9 +124,8 @@ void tokenClient(){
 
 void Send_Array_Data(int socket_id) {
 
-	uint16_t statistics = 0000;  
-	send(socket_id, &statistics, sizeof(uint16_t), 0);
-}
+	sleep(2);
+	printf("%s","Done");
 
 int main(int argc, char *argv[]) {
 	
