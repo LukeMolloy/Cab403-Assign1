@@ -10,12 +10,30 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <arpa/inet.h>
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <errno.h> 
+#include <string.h> 
+#include <sys/types.h> 
+#include <netinet/in.h> 
+#include <sys/socket.h> 
+#include <sys/wait.h> 
+#include <unistd.h>
+#include <errno.h>
+
+
 
 	#define ARRAY_SIZE 30  /* Size of array to receive */
 
 	#define BACKLOG 10     /* how many pending connections queue will hold */
 
 	#define RETURNED_ERROR -1
+
+	#define MAXDATASIZE 100 /* max number of bytes we can get at once */
+
+	#define USERNAME_SIZE 50
+
 
 
 const char delimiters[] = "	 \n,";
@@ -122,22 +140,32 @@ void tokenClient(){
     fclose(file);  
 }
 
-void Send_Array_Data(int socket_id) {
 
-	sleep(2);
-	printf("%s","Done");
+
+
+
+
+/*void Send_Username(int socket_id) {
+
+	int blah=2;
+
+	uint16_t statistics;  
+		statistics = htons(blah);
+		send(socket_id, &statistics, sizeof(uint16_t), 0);
+	
+}*/
+
 
 int main(int argc, char *argv[]) {
-	
-	pthread_t client_thread;
-	pthread_attr_t attr;
+	tokenAuth();
 
-
-	int sockfd, new_fd;  /* listen on sock_fd, new connection on new_fd */
+	int sockfd, new_fd, n, p, s;  /* listen on sock_fd, new connection on new_fd */
 	struct sockaddr_in my_addr;    /* my address information */
 	struct sockaddr_in their_addr; /* connector's address information */
 	socklen_t sin_size;
 	int i=0;
+	char username[256];
+	char password[256];
 
 	/* Get port number for server to listen on */
 	if (argc != 2) {
@@ -171,34 +199,82 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("server starts listnening ...\n");
+
+	char dest[50];
+		
+	new_fd = accept(sockfd, (struct sockaddr *) &their_addr, &sin_size);
 	
-	char username[50];
-	char reusername[50];
-	/* repeat: accept, send, close the connection */
-	/* for every accepted connection, use a sepetate process or thread to serve it */
-	while(1) {  /* main accept() loop */
-		sin_size = sizeof(struct sockaddr_in);
-		if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, \
-		&sin_size)) == -1) {
-			perror("accept");
-			continue;
-		}
-		printf("server: got connection from %s\n", \
-			inet_ntoa(their_addr.sin_addr));
+	//Get username
+	if (new_fd < 0) {
+		error("ERROR on accept");
+	}	
 
-		//Create a thread to accept client
-				
-		//pthread_attr_t attr;
-		//pthread_attr_init(&attr);
-		//pthread_create(&client_thread, &attr, Send_Array_Data, new_fd);
+	bzero(username, 256);
 
-		//pthread_join(client_thread,NULL);
-		reusername =  recv(clientSocket, username, sizeof(username), 0);
-		printf("%s", username);
 
+
+
+
+	
+	n = recv(new_fd, username, 255, 0);
+	username[strcspn(username, "\n")] = 0;
+
+
+
+	
+
+	
+	if (n < 0) {
+		error("ERROR reading from socket");
 	}
 
-	close(new_fd);  
+	printf("UsernameGotten: %s\n", username);
+	n = send(new_fd, "Got username\n", 12, 0);
 
-    return 0;
+	if (n < 0) {
+		error("ERROR writing to socket");
+	}
+
+
+	//Get password
+	if (new_fd < 0) {
+		error("ERROR on accept");
+	}	
+
+	bzero(password, 256);
+
+	p = recv(new_fd, password, 255, 0); 
+	
+	if (p < 0) {
+		error("ERROR reading from socket");
+	}
+
+	printf("PasswordGotten: %s\n", password);
+	p = send(new_fd, "Got password\n", 12, 0);
+
+	if (p < 0) {
+		error("ERROR writing to socket");
+	}
+
+	password[strcspn(password, "\n")] = 0;
+
+	
+	char success[256] = "True"; 	
+
+	for (int i = 0; i<11; i++) {
+		if (strcmp(username, Authentication[i][0]) == 0
+		&& strcmp(password, Authentication[i][1]) == 0) {		
+					printf("Account Found");
+					n = send(new_fd, success, strlen(success), 0);
+
+					
+		}
+	}
+
+
+	
+			
+
+	close(new_fd);  
+return 0;
 }

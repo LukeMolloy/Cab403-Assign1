@@ -13,18 +13,37 @@
 	#define ARRAY_SIZE 30
 
 	#define RETURNED_ERROR -1
-	char username [50];
+
+	#define USERNAME_SIZE 50
+
+
+/*void Receive_Array_Int_Data(int socket_identifier, int size) {
+    int number_of_bytes, i=0;
+    uint16_t statistics;
+
+	int *results = malloc(sizeof(int)*USERNAME_SIZE);
+
+
+		if ((number_of_bytes=recv(socket_identifier, &statistics, sizeof(uint16_t), 0))
+		         == RETURNED_ERROR) {
+			perror("recv");
+			exit(EXIT_FAILURE);			
+		    
+		}
+		results = ntohs(statistics);
+	
+	
+		printf("%d\n", results);
+	
+}*/
+
 
 
 
 
 int main(int argc, char *argv[]) {
-	int sockfd, numbytes, i=0;  
+	int sockfd, numbytes, i=0, n;  
 	char buf[MAXDATASIZE];
-	/* Thread and thread attributes */
-	pthread_t client_thread;
-	pthread_attr_t attr;
-
 	struct hostent *he;
 	struct sockaddr_in their_addr; /* connector's address information */
 
@@ -55,12 +74,64 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
+	
+	char username[256];
+	char password[256];
+	char success[256];
+	
+	printf("==========================================\n\n");
+	printf("Welcome to the Online ATM System\n\n");
+	printf("==========================================\n\n\n\n");
+	printf("You are required to logon with your registered Username and PIN\n\n");
+	printf("\nPlease enter your username--> ");
+	
+	bzero(username, 265);
+	fgets(username, 255, stdin);
+	n = send(sockfd, username, strlen(username), 0);
+	bzero(username, 256);
+	n = recv(sockfd, username, 255, 0);
+	printf("%s", username);
+
+	
+	if (username != NULL) {
+		printf("\nPlease enter your password-->");
+		bzero(password, 265);
+		fgets(password, 255, stdin);
+		n = send(sockfd, password, strlen(password), 0);
+		bzero(password, 256);
+		n = recv(sockfd, password, 255, 0);
+		printf("%s\n", password);
+	}
 
 
-	buf[numbytes] = '\0';
+	//bzero(success, 256);
+
+	n = recv(sockfd, success, strlen(success), 0);
+	success[strcspn(success, "\n")] = 0;
+	printf("\n\n%s", success);
+	if (strcmp(success, "True") == 0) {
+		printf("Hello yes\n\n");
+}		
+
+	
 
 
 
+
+
+
+	//buf[numbytes] = '\0';
+
+	//printf("Received: %s",buf);
+
+	close(sockfd);
+
+	return 0;
+}
+
+
+
+/*
 
 	printf("==========================================\n\n");
 	printf("Welcome to the Online ATM System\n\n");
@@ -83,11 +154,14 @@ int main(int argc, char *argv[]) {
 	//}
 
 	
+
+
+/*	
 	if (username != NULL) {
 		printf("Please enter your password--> \n");
 	}
-	int blah = 5;
-	send(socket_id, &blah, sizeof(uint16_t), 0);
+	char blah = 5;
+	//send(argv[1], &blah, sizeof(uint16_t), 0);
 	close(sockfd);
 	return 0;
 }
