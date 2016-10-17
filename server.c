@@ -229,7 +229,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("UsernameGotten: %s\n", username);
-	n = send(new_fd, "Got username\n", 12, 0);
+	//n = send(new_fd, "Got username\n", 12, 0);
 
 	if (n < 0) {
 		error("ERROR writing to socket");
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("PasswordGotten: %s\n", password);
-	p = send(new_fd, "Got password\n", 12, 0);
+	//p = send(new_fd, "Got password\n", 12, 0);
 
 	if (p < 0) {
 		error("ERROR writing to socket");
@@ -259,14 +259,21 @@ int main(int argc, char *argv[]) {
 	password[strcspn(password, "\n")] = 0;
 
 	
-	char success[256] = "True"; 	
+		
+
+	char success[4] = "True";
+	//*((int*)success) = 1111;
+
+
 
 	for (int i = 0; i<11; i++) {
 		if (strcmp(username, Authentication[i][0]) == 0
 		&& strcmp(password, Authentication[i][1]) == 0) {		
 					printf("Account Found");
-					n = send(new_fd, success, strlen(success), 0);
-
+					//bzero(success, 265);
+					//fgets(success, 255, stdin);
+					send(new_fd, success, 4, 0);
+					
 					
 		}
 	}
