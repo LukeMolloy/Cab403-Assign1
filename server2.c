@@ -10,19 +10,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <arpa/inet.h>
-#include <stdio.h> 
-#include <stdlib.h> 
-#include <errno.h> 
-#include <string.h> 
-#include <sys/types.h> 
-#include <netinet/in.h> 
-#include <sys/socket.h> 
-#include <sys/wait.h> 
-#include <unistd.h>
-#include <errno.h>
-
-
 
 	#define ARRAY_SIZE 30  /* Size of array to receive */
 
@@ -30,17 +17,13 @@
 
 	#define RETURNED_ERROR -1
 
-	#define MAXDATASIZE 100 /* max number of bytes we can get at once */
-
-	#define USERNAME_SIZE 50
-
-
 
 const char delimiters[] = "	 \n,";
 char *Authentication[11][3];
 char *Accounts[25][3];
 char *ClientDetails[11][6];
 char *Transactions[1][4];
+
 
 void tokenAuth(){
 	FILE  *file;
@@ -140,94 +123,39 @@ void tokenClient(){
     fclose(file);  
 }
 
-void threadmain(int socket_id){
-	int auth;
-	int p = 0;
-	auth = login(socket_id);
+void doStuff(int socket_id) {
+	int a=5;
+	int number_of_bytes, i=0;
+	/* Create an array of squares of first 30 whole numbers */
+	uint16_t statistics;  
+	statistics = htons(a);
+	send(socket_id, &statistics, sizeof(uint16_t), 0);
 
-	if(auth == 1){
-		p = send(socket_id, "Success\n", 7, 0);
-	}else{
-		p = send(socket_id, "Fail\n", 4, 0);	
-	}
-}
-
-int login(int socket_id) {
-
-	printf("In Thread");
-	char username[256];
-	char password[256];
-	int p = 0;
-	int n = 0;
-	int ret = 0;
-
-	bzero(username, 256);
-
-	n = recv(socket_id, username, 255, 0);
-	username[strcspn(username, "\n")] = 0;
-
-	if (n < 0) {
-		error("ERROR reading from socket");
-	}
-
-	printf("UsernameGotten: %s\n", username);
-	n = send(socket_id, "Got username\n", 12, 0);
-
-	if (n < 0) {
-		error("ERROR writing to socket");
-	}
-
-
-	//Get password
-	if (socket_id < 0) {
-		error("ERROR on accept");
-	}	
-
-	bzero(password, 256);
-
-	p = recv(socket_id, password, 255, 0); 
-	
-	if (p < 0) {
-		error("ERROR reading from socket");
-	}
-
-	printf("PasswordGotten: %s\n", password);
-	p = send(socket_id, "Got password\n", 12, 0);
-
-	if (p < 0) {
-		error("ERROR writing to socket");
-	}
-
-	password[strcspn(password, "\n")] = 0;
-
-	p = send(socket_id, "Checking Details\n", 16, 0);
-	char success[256] = "True"; 	
-
-	for (int i = 0; i<11; i++) {
-		if ((strcmp(username, Authentication[i][0]) == 0) && (strcmp(password, Authentication[i][1]) == 0)) {		
-			//printf("%s","Account Found");
-			n = send(socket_id, success, strlen(success), 0);
-			ret = 1;
+	for (i=0; i < 1; i++) {
+		if ((number_of_bytes=recv(socket_id, &statistics, sizeof(uint16_t), 0))
+		         == RETURNED_ERROR) {
+			perror("recv");
+			exit(EXIT_FAILURE);			
+		    
 		}
+		int result = ntohs(statistics);
+		sleep(5);
+		printf("Result = %d\n", result);
 	}
-	p = send(socket_id, "Done\n", 4, 0);
-	return ret;
-		
-}
 
+}
 
 int main(int argc, char *argv[]) {
-	tokenAuth();
-
+	
 	pthread_t client_thread;
 	pthread_attr_t attr;
 
-	int sockfd, new_fd, n, p, s;  /* listen on sock_fd, new connection on new_fd */
+
+	int sockfd, new_fd;  /* listen on sock_fd, new connection on new_fd */
 	struct sockaddr_in my_addr;    /* my address information */
 	struct sockaddr_in their_addr; /* connector's address information */
 	socklen_t sin_size;
 	int i=0;
-	
 
 	/* Get port number for server to listen on */
 	if (argc != 2) {
@@ -262,6 +190,8 @@ int main(int argc, char *argv[]) {
 
 	printf("server starts listnening ...\n");
 
+	/* repeat: accept, send, close the connection */
+	/* for every accepted connection, use a sepetate process or thread to serve it */
 	while(1) {  /* main accept() loop */
 		sin_size = sizeof(struct sockaddr_in);
 		if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, \
@@ -276,12 +206,30 @@ int main(int argc, char *argv[]) {
 				
 		pthread_attr_t attr;
 		pthread_attr_init(&attr);
-		pthread_create(&client_thread, &attr, threadmain, new_fd);
+		pthread_create(&client_thread, &attr, doStuff, new_fd);
 
-		//pthread_join(client_thread,NULL);
+		pthread_join(client_thread,NULL);
 
-	}		
+		if (send(new_fd, "All of array data sent by server\n", 40 , 0) == -1)
+				perror("send");
+
+	}
 
 	close(new_fd);  
 
+	/*for (t = 0; t < BACKLOG; t++) {
+		printf("In main: creating thread %ld\n", t);
+		rc = pthread_create(threads + t, NULL, doStuff, (void *) t);
+		if (rc) {
+			printf("ERROR; return code from pthread_create() is %d\n", rc);
+			exit(-1);
+		}
+	}
+	/* wait for all threads to complete */
+/*	for (t = 0; t < BACKLOG; t++) {
+		pthread_join(threads[t], NULL);
+	}
+	pthread_exit(NULL);
+*/
+    return 0;
 }

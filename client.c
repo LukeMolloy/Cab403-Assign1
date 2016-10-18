@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 	
 	char username[256];
 	char password[256];
-	
+	char success[256];
 	
 	printf("==========================================\n\n");
 	printf("Welcome to the Online ATM System\n\n");
@@ -89,7 +89,8 @@ int main(int argc, char *argv[]) {
 	fgets(username, 255, stdin);
 	n = send(sockfd, username, strlen(username), 0);
 	bzero(username, 256);
-	
+	n = recv(sockfd, username, 255, 0);
+	printf("%s", username);
 
 	
 	if (username != NULL) {
@@ -98,39 +99,22 @@ int main(int argc, char *argv[]) {
 		fgets(password, 255, stdin);
 		n = send(sockfd, password, strlen(password), 0);
 		bzero(password, 256);
+		n = recv(sockfd, password, 255, 0);
+		printf("%s\n", password);
 	}
 
 
 	//bzero(success, 256);
-	//bzero(success, 256);
-	//n = recv(sockfd, success, strlen(success), 0);
-	//success[strcspn(success, "\n")] = 0;
-	//printf("%s", success);
-	
-	char success [4];
-	recv(sockfd, success, 4, 0);
 
-	char client_number[8];
-	recv(sockfd, client_number, 8, 0);
-	//printf("%s", success);
+	n = recv(sockfd, success, strlen(success), 0);
+	success[strcspn(success, "\n")] = 0;
+	printf("\n\n%s", success);
 	if (strcmp(success, "True") == 0) {
-		printf("Welcome to the ATM System\n\n");
-		printf("You are currently logged in as: \n");
-		printf("Client number: %s \n ", client_number);
-		printf("Please enter a selection\n");
-		printf("<1> Account Balance\n");
-		printf("<2> Withdrawal\n");
-		printf("<3> Deposit\n");
-		printf("<4> Transfer\n");
-		printf("<5> Transaction Listing\n");
-		printf("<6> EXIT\n\n");
-		printf("Selection option 1 - 6 ->");
-
-
-	}		
+		printf("Hello yes\n\n");
+}		
 
 	
-//printf("PasswordGotten: %s\n", password);
+
 
 
 
