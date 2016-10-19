@@ -197,6 +197,7 @@ int login(int thread, int socketid) {
     char password[256];
     int p = 0;
     int n = 0;
+	int h;
     int ret = 0;
 
     bzero(username, 256);
@@ -209,7 +210,7 @@ int login(int thread, int socketid) {
     }
 
     printf("UsernameGotten: %s\n", username);
-    n = send(socketid, "Got username\n", 12, 0);
+    //n = send(socketid, "Got username\n", 12, 0);
     
     if (n < 0) {
         error("ERROR writing to socket");
@@ -228,7 +229,7 @@ int login(int thread, int socketid) {
     }
     //p = send(socketid, "-A-\n", 3, 0)
     printf("PasswordGotten: %s\n", password);
-    p = send(socketid, "Got password\n", 12, 0);
+    //p = send(socketid, "Got password\n", 12, 0);
     //p = send(socketid, "-B-\n", 3, 0)
     if (p < 0) {
         error("ERROR writing to socket");
@@ -236,17 +237,16 @@ int login(int thread, int socketid) {
 
     password[strcspn(password, "\n")] = 0;
 
-    p = send(socketid, "Checking Details\n", 16, 0);
-    char success[256] = "True";     
+    //p = send(socketid, "Checking Details\n", 16, 0);
+    char success[4] = "True";     
 
-    for (int i = 0; i<11; i++) {
-        if ((strcmp(username, Authentication[i][0]) == 0) && (strcmp(password, Authentication[i][1]) == 0)) {       
-            n = send(socketid, success, strlen(success), 0);
-            ret = 1;
-            i = 11;
-        }
-    }
-    p = send(socketid, "Done\n", 4, 0);
+   	for (int i = 0; i<11; i++) {
+		if (strcmp(username, Authentication[i][0]) == 0
+		&& strcmp(password, Authentication[i][1]) == 0) {		
+					send(socketid, success, 4, 0);	
+		}
+	}
+    //p = send(socketid, "Done\n", 4, 0);
     return ret;
         
 }
@@ -357,6 +357,8 @@ int main(int argc, char* argv[]) {
 
         a++;
     }
+	
+	
     
     return 0;
 }
