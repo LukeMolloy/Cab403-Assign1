@@ -14,32 +14,26 @@
 
 	#define RETURNED_ERROR -1
 
-	#define USERNAME_SIZE 50
 
-
-/*void Receive_Array_Int_Data(int socket_identifier, int size) {
+void Receive_Array_Int_Data(int socket_identifier, int size) {
     int number_of_bytes, i=0;
     uint16_t statistics;
 
-	int *results = malloc(sizeof(int)*USERNAME_SIZE);
+	int *results = malloc(sizeof(int)*ARRAY_SIZE);
 
-
+	for (i=0; i < size; i++) {
 		if ((number_of_bytes=recv(socket_identifier, &statistics, sizeof(uint16_t), 0))
 		         == RETURNED_ERROR) {
 			perror("recv");
 			exit(EXIT_FAILURE);			
 		    
 		}
-		results = ntohs(statistics);
-	
-	
-		printf("%d\n", results);
-	
-}*/
-
-
-
-
+		results[i] = ntohs(statistics);
+	}
+	for (i=0; i < ARRAY_SIZE; i++) {
+		printf("Array[%d] = %d\n", i, results[i]);
+	}
+}
 
 int main(int argc, char *argv[]) {
 	int sockfd, numbytes, i=0, n;  
@@ -74,7 +68,6 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	
 	char username[256];
 	char password[256];
 	char success[256];
@@ -111,61 +104,9 @@ int main(int argc, char *argv[]) {
 	printf("\n\n%s", success);
 	if (strcmp(success, "True") == 0) {
 		printf("Hello yes\n\n");
-}		
-
-	
-
-
-
-
-
-
-	//buf[numbytes] = '\0';
-
-	//printf("Received: %s",buf);
-
-	close(sockfd);
-
-	return 0;
-}
-
-
-
-/*
-
-	printf("==========================================\n\n");
-	printf("Welcome to the Online ATM System\n\n");
-	printf("==========================================\n\n\n\n");
-	printf("You are required to logon with your registered Username and PIN\n\n");
-	printf("Please enter your username--> ");
-	scanf("%s", &username);
-	printf("%s\n", username);
-	 
-
-	//int clientSocket, portNum, nBytes;	
-
-	//while(1) {
-	//	scanf("%s", &username);
-	//	printf("%s\n", username);
-	//	fgets(username, 50, stdin);
-	//	nBytes = strlen(username) + 1;
-	//	send(clientSocket, username, nBytes, 0); 
-		//recv(clientSocket, username, 50, 0);
-	//}
-
-	
-
-
-/*	
-	if (username != NULL) {
-		printf("Please enter your password--> \n");
 	}
-	char blah = 5;
-	//send(argv[1], &blah, sizeof(uint16_t), 0);
+
 	close(sockfd);
+
 	return 0;
 }
-
-/*int main(int argc, char *argv[]) {
-	
-}*/

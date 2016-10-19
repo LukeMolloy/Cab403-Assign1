@@ -1,6 +1,10 @@
+#define _GNU_SOURCE
+#include <stdio.h>       
+#include <pthread.h>     
+#include <stdlib.h>      
+#include <time.h>
+#include <unistd.h>
 #include <arpa/inet.h>
-#include <stdio.h> 
-#include <stdlib.h> 
 #include <errno.h> 
 #include <string.h> 
 #include <sys/types.h> 
@@ -8,63 +12,57 @@
 #include <sys/socket.h> 
 #include <sys/wait.h> 
 #include <unistd.h>
-#include <errno.h>
 
-#include <arpa/inet.h>
-#include <stdio.h> 
-#include <stdlib.h> 
-#include <errno.h> 
-#include <string.h> 
-#include <sys/types.h> 
-#include <netinet/in.h> 
-#include <sys/socket.h> 
-#include <sys/wait.h> 
-#include <unistd.h>
-#include <errno.h>
+#define NUM_HANDLER_THREADS 10
 
+#define BACKLOG 10
 
+#define RETURNED_ERROR -1
 
-	#define ARRAY_SIZE 30  /* Size of array to receive */
+pthread_mutex_t request_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
-	#define BACKLOG 10     /* how many pending connections queue will hold */
+pthread_cond_t  got_request   = PTHREAD_COND_INITIALIZER;
 
-	#define RETURNED_ERROR -1
+int num_requests = 0;  
 
-	#define MAXDATASIZE 100 /* max number of bytes we can get at once */
+struct request {
+    int number; 
+    int socketid;            
+    struct request* next;   
+};
 
-	#define USERNAME_SIZE 50
+struct request* requests = NULL;     
+struct request* last_request = NULL; 
 
-
-
-const char delimiters[] = "	 \n,";
+const char delimiters[] = "  \n,";
 char *Authentication[11][3];
 char *Accounts[25][3];
 char *ClientDetails[11][6];
 char *Transactions[1][4];
 
 void tokenAuth(){
-	FILE  *file;
-	char *string, *found;
+    FILE  *file;
+    char *string, *found;
 
-	file = fopen("Authentication.txt", "r");
-	
-	char line[256];
-	int x = 0;
+    file = fopen("Authentication.txt", "r");
+    
+    char line[256];
+    int x = 0;
 
-	while (fgets(line, sizeof(line), file)) {
+    while (fgets(line, sizeof(line), file)) {
 
-    	string = strdup(line);
+        string = strdup(line);
 
-    	found = strtok (string, delimiters);
-    	Authentication[x][0]=found;
+        found = strtok (string, delimiters);
+        Authentication[x][0]=found;
 
-    	found = strtok (NULL, delimiters);
-    	Authentication[x][1]=found;
+        found = strtok (NULL, delimiters);
+        Authentication[x][1]=found;
 
-    	found = strtok (NULL, delimiters);
-    	Authentication[x][2]=found;
-    	
-    	x++;
+        found = strtok (NULL, delimiters);
+        Authentication[x][2]=found;
+        
+        x++;
     }
     fclose(file);
 }
@@ -140,148 +138,231 @@ void tokenClient(){
     fclose(file);  
 }
 
-void threadmain(int socket_id){
-	int auth;
-	int p = 0;
-	auth = login(socket_id);
+void add_request(int request_num, pthread_mutex_t* p_mutex, pthread_cond_t*  p_cond_var, int new_fd)
+{
+    int rc;                         
+    struct request* a_request;      
+    printf("-B-\n");
+    
+    a_request = (struct request*)malloc(sizeof(struct request));
+    if (!a_request) { 
+        fprintf(stderr, "add_request: out of memory\n");
+        exit(1);
+    }
+    a_request->number = request_num;
+    a_request->next = NULL;
+    a_request->socketid = new_fd;
 
-	if(auth == 1){
-		p = send(socket_id, "Success\n", 7, 0);
-	}else{
-		p = send(socket_id, "Fail\n", 4, 0);	
-	}
+    rc = pthread_mutex_lock(p_mutex);
+
+    if (num_requests == 0) {
+        requests = a_request;
+        last_request = a_request;
+    }
+    else {
+        last_request->next = a_request;
+        last_request = a_request;
+    }
+
+    num_requests++;
+
+    rc = pthread_mutex_unlock(p_mutex);
+
+    rc = pthread_cond_signal(p_cond_var);
 }
 
-int login(int socket_id) {
+struct request* get_request(pthread_mutex_t* p_mutex)
+{
+    printf("-C-\n");
+    int rc;                         
+    struct request* a_request;      
 
-	printf("In Thread");
-	char username[256];
-	char password[256];
-	int p = 0;
-	int n = 0;
-	int ret = 0;
+    rc = pthread_mutex_lock(p_mutex);
 
-	bzero(username, 256);
-
-	n = recv(socket_id, username, 255, 0);
-	username[strcspn(username, "\n")] = 0;
-
-	if (n < 0) {
-		error("ERROR reading from socket");
-	}
-
-	printf("UsernameGotten: %s\n", username);
-	n = send(socket_id, "Got username\n", 12, 0);
-
-	if (n < 0) {
-		error("ERROR writing to socket");
-	}
-
-
-	//Get password
-	if (socket_id < 0) {
-		error("ERROR on accept");
-	}	
-
-	bzero(password, 256);
-
-	p = recv(socket_id, password, 255, 0); 
-	
-	if (p < 0) {
-		error("ERROR reading from socket");
-	}
-
-	printf("PasswordGotten: %s\n", password);
-	p = send(socket_id, "Got password\n", 12, 0);
-
-	if (p < 0) {
-		error("ERROR writing to socket");
-	}
-
-	password[strcspn(password, "\n")] = 0;
-
-	p = send(socket_id, "Checking Details\n", 16, 0);
-	char success[256] = "True"; 	
-
-	for (int i = 0; i<11; i++) {
-		if ((strcmp(username, Authentication[i][0]) == 0) && (strcmp(password, Authentication[i][1]) == 0)) {		
-			//printf("%s","Account Found");
-			n = send(socket_id, success, strlen(success), 0);
-			ret = 1;
-		}
-	}
-	p = send(socket_id, "Done\n", 4, 0);
-	return ret;
-		
+    if (num_requests > 0) {
+        a_request = requests;
+        requests = a_request->next;
+        if (requests == NULL) {
+            last_request = NULL;
+        }
+        num_requests--;
+    }
+    else { 
+        a_request = NULL;
+    }
+    rc = pthread_mutex_unlock(p_mutex);
+    return a_request;
 }
 
+int login(int thread, int socketid) {
+    printf("-D- %d\n", socketid);
+    printf("In Thread %d", thread);
+    char username[256];
+    char password[256];
+    int p = 0;
+    int n = 0;
+    int ret = 0;
 
-int main(int argc, char *argv[]) {
-	tokenAuth();
+    bzero(username, 256);
 
-	pthread_t client_thread;
-	pthread_attr_t attr;
+    n = recv(socketid, username, 255, 0);
+    username[strcspn(username, "\n")] = 0;
 
-	int sockfd, new_fd, n, p, s;  /* listen on sock_fd, new connection on new_fd */
-	struct sockaddr_in my_addr;    /* my address information */
-	struct sockaddr_in their_addr; /* connector's address information */
-	socklen_t sin_size;
-	int i=0;
-	
+    if (n < 0) {
+        error("ERROR reading from socket");
+    }
 
-	/* Get port number for server to listen on */
-	if (argc != 2) {
-		fprintf(stderr,"usage: client port_number\n");
-		exit(1);
-	}
+    printf("UsernameGotten: %s\n", username);
+    n = send(socketid, "Got username\n", 12, 0);
+    
+    if (n < 0) {
+        error("ERROR writing to socket");
+    }
 
-	/* generate the socket */
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		perror("socket");
-		exit(1);
-	}
+    if (socketid < 0) {
+        error("ERROR on accept");
+    }   
 
-	/* generate the end point */
-	my_addr.sin_family = AF_INET;         /* host byte order */
-	my_addr.sin_port = htons(atoi(argv[1]));     /* short, network byte order */
-	my_addr.sin_addr.s_addr = INADDR_ANY; /* auto-fill with my IP */
-		/* bzero(&(my_addr.sin_zero), 8);   ZJL*/     /* zero the rest of the struct */
+    bzero(password, 256);
 
-	/* bind the socket to the end point */
-	if (bind(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) \
-	== -1) {
-		perror("bind");
-		exit(1);
-	}
+    p = recv(socketid, password, 255, 0); 
+    
+    if (p < 0) {
+        error("ERROR reading from socket");
+    }
+    //p = send(socketid, "-A-\n", 3, 0)
+    printf("PasswordGotten: %s\n", password);
+    p = send(socketid, "Got password\n", 12, 0);
+    //p = send(socketid, "-B-\n", 3, 0)
+    if (p < 0) {
+        error("ERROR writing to socket");
+    }
 
-	/* start listnening */
-	if (listen(sockfd, BACKLOG) == -1) {
-		perror("listen");
-		exit(1);
-	}
+    password[strcspn(password, "\n")] = 0;
 
-	printf("server starts listnening ...\n");
+    p = send(socketid, "Checking Details\n", 16, 0);
+    char success[256] = "True";     
 
-	while(1) {  /* main accept() loop */
-		sin_size = sizeof(struct sockaddr_in);
-		if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, \
-		&sin_size)) == -1) {
-			perror("accept");
-			continue;
-		}
-		printf("server: got connection from %s\n", \
-			inet_ntoa(their_addr.sin_addr));
+    for (int i = 0; i<11; i++) {
+        if ((strcmp(username, Authentication[i][0]) == 0) && (strcmp(password, Authentication[i][1]) == 0)) {       
+            n = send(socketid, success, strlen(success), 0);
+            ret = 1;
+            i = 11;
+        }
+    }
+    p = send(socketid, "Done\n", 4, 0);
+    return ret;
+        
+}
 
-		//Create a thread to accept client
-				
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_create(&client_thread, &attr, threadmain, new_fd);
+void handle_request(struct request* a_request, int thread_id)
+{
+    printf("-E-\n");
+    if (a_request) {
+        //printf("Thread '%d' handled request '%d'\n",
+         //      thread_id, a_request->number);
+        //fflush(stdout);
 
-		//pthread_join(client_thread,NULL);
+        int auth;
+        int p = 0;
+        auth = login(thread_id, a_request->socketid);
 
-	}		
+        if(auth == 1){
+            p = send(a_request->socketid, "Success\n", 7, 0);
+        }else{
+            p = send(a_request->socketid, "Fail\n", 4, 0);    
+        }
+    }
+}
 
-	close(new_fd);  
+void* handle_requests_loop(void* data)
+{
+    printf("-F-\n");
+    int rc;                         
+    struct request* a_request;      
+    int thread_id = *((int*)data);  
 
+    rc = pthread_mutex_lock(&request_mutex);
+
+    while (1) {
+
+        if (num_requests > 0) { 
+            a_request = get_request(&request_mutex);
+            if (a_request) { 
+                rc = pthread_mutex_unlock(&request_mutex);
+                handle_request(a_request, thread_id);
+                free(a_request);
+                rc = pthread_mutex_lock(&request_mutex);
+            }
+        }
+        else {
+            rc = pthread_cond_wait(&got_request, &request_mutex);
+        }
+    }
+}
+
+int main(int argc, char* argv[]) {
+    int        i;                        
+    int        thr_id[NUM_HANDLER_THREADS];      
+    pthread_t  p_threads[NUM_HANDLER_THREADS];   
+    struct timespec delay;    
+
+    int sockfd, new_fd;              
+    struct sockaddr_in my_addr;    
+    struct sockaddr_in their_addr; 
+    socklen_t sin_size;
+
+    tokenAuth();
+   
+    if (argc != 2) {
+        fprintf(stderr,"usage: client port_number\n");
+        exit(1);
+    }
+
+    
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("socket");
+        exit(1);
+    }
+
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(atoi(argv[1]));     
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) \
+    == -1) {
+        perror("bind");
+        exit(1);
+    }
+
+    if (listen(sockfd, BACKLOG) == -1) {
+        perror("listen");
+        exit(1);
+    }
+
+    printf("server starts listnening ...\n");
+
+    for (i=0; i<NUM_HANDLER_THREADS; i++) {
+        thr_id[i] = i;
+        pthread_create(&p_threads[i], NULL, handle_requests_loop, (void*)&thr_id[i]);
+    }
+
+    int a = 1;
+
+    while(1) {    
+        sin_size = sizeof(struct sockaddr_in);
+        if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, \
+        &sin_size)) == -1) {
+            perror("accept");
+            continue;
+        }
+        printf("server: got connection from %s\n", \
+            inet_ntoa(their_addr.sin_addr));
+        printf("-A-\n");
+        add_request(a, &request_mutex, &got_request, new_fd);
+
+        a++;
+    }
+    
+    return 0;
 }
