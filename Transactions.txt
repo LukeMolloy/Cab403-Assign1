@@ -1,1 +1,0 @@
-FromAccount      ToAccount       TranType    Amount
