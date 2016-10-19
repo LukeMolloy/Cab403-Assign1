@@ -142,7 +142,6 @@ void add_request(int request_num, pthread_mutex_t* p_mutex, pthread_cond_t*  p_c
 {
     int rc;                         
     struct request* a_request;      
-    printf("-B-\n");
     
     a_request = (struct request*)malloc(sizeof(struct request));
     if (!a_request) { 
@@ -173,7 +172,6 @@ void add_request(int request_num, pthread_mutex_t* p_mutex, pthread_cond_t*  p_c
 
 struct request* get_request(pthread_mutex_t* p_mutex)
 {
-    printf("-C-\n");
     int rc;                         
     struct request* a_request;      
 
@@ -195,8 +193,6 @@ struct request* get_request(pthread_mutex_t* p_mutex)
 }
 
 int login(int thread, int socketid) {
-    printf("-D- %d\n", socketid);
-    printf("In Thread %d", thread);
     char username[256];
     char password[256];
     int p = 0;
@@ -257,7 +253,6 @@ int login(int thread, int socketid) {
 
 void handle_request(struct request* a_request, int thread_id)
 {
-    printf("-E-\n");
     if (a_request) {
         //printf("Thread '%d' handled request '%d'\n",
          //      thread_id, a_request->number);
@@ -277,7 +272,6 @@ void handle_request(struct request* a_request, int thread_id)
 
 void* handle_requests_loop(void* data)
 {
-    printf("-F-\n");
     int rc;                         
     struct request* a_request;      
     int thread_id = *((int*)data);  
