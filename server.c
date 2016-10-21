@@ -34,7 +34,7 @@ struct request {
 struct request* requests = NULL;     
 struct request* last_request = NULL; 
 
-const char delimiters[] = "  \n,";
+const char delimiters[] = ",\n\t\r\v\f ";
 char *Authentication[11][3];
 char *Accounts[25][3];
 char *ClientDetails[11][6];
@@ -52,7 +52,7 @@ void tokenAuth(){
     while (fgets(line, sizeof(line), file)) {
 
         string = strdup(line);
-
+        
         found = strtok (string, delimiters);
         Authentication[x][0]=found;
 
@@ -61,7 +61,7 @@ void tokenAuth(){
 
         found = strtok (NULL, delimiters);
         Authentication[x][2]=found;
-        
+
         x++;
     }
     fclose(file);
@@ -88,7 +88,7 @@ void tokenAccount(){
 
         found = strtok (NULL, delimiters);
         Accounts[x][2]=found;
-        
+
         x++;
     }
     fclose(file);
@@ -132,7 +132,7 @@ void tokenClient(){
         }else{
             ClientDetails[x][5]=found;
         }
-        
+        printf("\n");
         x++;
     }
     fclose(file);  
@@ -192,15 +192,15 @@ struct request* get_request(pthread_mutex_t* p_mutex)
     return a_request;
 }
 
-int login(int thread, int socketid) {
-    char username[256];
-    char password[256];
+char *login(int thread, int socketid) {
+    char username[255];
+    char password[255];
     int p = 0;
     int n = 0;
 	int h;
     int ret = 0;
 
-    bzero(username, 256);
+    bzero(username, 255);
 
     n = recv(socketid, username, 255, 0);
     username[strcspn(username, "\n")] = 0;
@@ -220,52 +220,191 @@ int login(int thread, int socketid) {
         error("ERROR on accept");
     }   
 
-    bzero(password, 256);
+    bzero(password, 255);
 
     p = recv(socketid, password, 255, 0); 
+    password[strcspn(password, "\n")] = 0;
     
     if (p < 0) {
         error("ERROR reading from socket");
     }
-    //p = send(socketid, "-A-\n", 3, 0)
     printf("PasswordGotten: %s\n", password);
-    //p = send(socketid, "Got password\n", 12, 0);
-    //p = send(socketid, "-B-\n", 3, 0)
-    if (p < 0) {
-        error("ERROR writing to socket");
-    }
-
-    password[strcspn(password, "\n")] = 0;
-
-    //p = send(socketid, "Checking Details\n", 16, 0);
-    char success[4] = "True";     
+    char success[255] = "True";
+    char *client_no = malloc(255);  
+    char first_name[255];
+    char last_name[255];  
 
    	for (int i = 0; i<11; i++) {
-		if (strcmp(username, Authentication[i][0]) == 0
-		&& strcmp(password, Authentication[i][1]) == 0) {		
-					send(socketid, success, 4, 0);	
+        //printf("%s ", Authentication[i][0]);
+		if (strcmp(username, Authentication[i][0]) == 0 && strcmp(password, Authentication[i][1]) == 0) {		
+			send(socketid, success, 255, 0);
+            strcpy(client_no, Authentication[i][2]);
+            send(socketid, client_no, 255, 0);
+            //send(socketid, success, 4, 0);
+            //printf("<%s>\n\n", client_no);
+            for (int x = 0; x<11; x++) {
+                //printf("<%s>\n", ClientDetails[x][2]);
+                if (strcmp(client_no, ClientDetails[x][2]) ==  0) { 
+
+                    strcpy(first_name, ClientDetails[x][0]);
+                    send(socketid, first_name, 255, 0);
+
+                    strcpy(last_name, ClientDetails[x][1]);
+                    send(socketid, last_name, 255, 0);
+                    //strcpy(last_name, Authentication[i][1]);
+                    //send(socketid, last_name, 255, 0);  
+                }
+            }	
 		}
 	}
+
+
+    //printf("True");
     //p = send(socketid, "Done\n", 4, 0);
-    return ret;
+    return client_no;
         
 }
+
+char *listAccounts(int socketid, char *auth, char *chosen){
+    char *chosenaccount = malloc(255);
+    int x=0;
+    char *acc1 = malloc(255);
+    char *acc2 = malloc(255);
+    char *acc3 = malloc(255);
+
+    //printf("-A-");
+    for(x=0; x < 11; x++){
+        //printf("%s\n", ClientDetails[x][2]);
+        if (strcmp(auth, ClientDetails[x][2]) == 0){
+            acc1 = ClientDetails[x][3];
+            acc2 = ClientDetails[x][4];
+            acc3 = ClientDetails[x][5];
+            //printf("-B-");
+        }
+    }
+
+    int num = atoi(chosen);
+    if(num == 1){
+        //printf("-C-");
+        send(socketid, acc1, 255, 0);
+        send(socketid, acc2, 255, 0);
+        send(socketid, acc3, 255, 0);
+        recv(socketid, chosenaccount, 255, 0);
+    }else if(num == 2){
+        send(socketid, acc1, 255, 0);
+        send(socketid, acc2, 255, 0);
+        send(socketid, acc3, 255, 0);
+        recv(socketid, chosenaccount, 255, 0);
+    }else if(num == 3){
+        send(socketid, acc1, 255, 0);
+        send(socketid, acc2, 255, 0);
+        send(socketid, acc3, 255, 0);
+        recv(socketid, chosenaccount, 255, 0);
+    }else if(num == 4){
+        
+    }else if(num == 5){
+        
+    }        
+
+    return chosenaccount;
+}
+
+void retclosebal(int socketid, char *chosenAcc){
+
+    int AccPos;
+    for(int x = 0; x < 25; x++){
+        if(strcmp(chosenAcc, Accounts[x][0]) == 0){
+            AccPos = x;
+        }
+        //printf("Account Bal: %s\n", Accounts[x][2]);
+    }
+    //printf("Account Sent: %s\n", Accounts[AccPos][2]);
+    send(socketid, Accounts[AccPos][2], 255, 0);
+
+}
+
+void updateclosebal(int socketid, char *chosenAcc){
+    char *newclose = malloc(255);
+    char *fail = "False";
+    recv(socketid, newclose, 255, 0);
+    newclose[strcspn(newclose, "\n")] = 0;
+    printf("<%s>\n", newclose);
+    printf("<%s>\n", fail);
+    
+    for(int x = 0; x < 25; x++){
+        if(strcmp(chosenAcc, Accounts[x][0]) == 0){
+            //Accounts[x][2] = malloc(sizeof(newclose));
+            if(strcmp(newclose, "False") !=0){
+                Accounts[x][2] = newclose;
+            }
+        }
+    }
+    printf("\n");
+}
+
+void mainmenu(struct request* a_request, int thread_id, char *auth){
+    int socketid = a_request->socketid;
+    char chosen[255];
+    char quit[255];
+    char *chosenAcc;
+
+    while(1){
+        recv(socketid, chosen, 255, 0);
+
+        int num = atoi(chosen);
+
+        if(num == 1){
+            printf("%s\n", chosen);
+            chosenAcc = listAccounts(socketid, auth, chosen);
+            printf("%s\n", chosenAcc);
+            retclosebal(socketid, chosenAcc);
+        }else if(num == 2){
+            printf("%s\n", chosen);
+            chosenAcc = listAccounts(socketid, auth, chosen);
+            if(strcmp(chosenAcc, "e") != 0){
+                recv(socketid, quit, 255, 0);
+                quit[strcspn(quit, "\n")] = 0;
+                if(strcmp(quit, "True") == 0){
+                    retclosebal(socketid, chosenAcc);
+                    updateclosebal(socketid, chosenAcc); 
+                } 
+            }
+        }else if(num == 3){
+            printf("%s\n", chosen);
+            chosenAcc = listAccounts(socketid, auth, chosen);
+            if(strcmp(chosenAcc, "e") != 0){
+                recv(socketid, quit, 255, 0);
+                quit[strcspn(quit, "\n")] = 0;
+                if(strcmp(quit, "True") == 0){
+                    retclosebal(socketid, chosenAcc);
+                    updateclosebal(socketid, chosenAcc);
+                }
+            }
+        }else if(num == 4){
+            printf("%s\n", chosen);
+        }else if(num == 5){
+            printf("%s\n", chosen);
+        }else if(num == 6){
+            printf("%s\n", chosen);
+            break;
+        } 
+        num = 0;
+    }
+}
+
+
 
 void handle_request(struct request* a_request, int thread_id)
 {
     if (a_request) {
-        //printf("Thread '%d' handled request '%d'\n",
-         //      thread_id, a_request->number);
-        //fflush(stdout);
 
-        int auth;
         int p = 0;
-        auth = login(thread_id, a_request->socketid);
+        char *auth = login(thread_id, a_request->socketid);
 
-        if(auth == 1){
-            p = send(a_request->socketid, "Success\n", 7, 0);
+        if(auth != NULL){
+            mainmenu(a_request, thread_id, auth);
         }else{
-            p = send(a_request->socketid, "Fail\n", 4, 0);    
+            printf("YOU FAIL\n");   
         }
     }
 }
@@ -296,6 +435,11 @@ void* handle_requests_loop(void* data)
 }
 
 int main(int argc, char* argv[]) {
+    tokenAuth();
+    tokenClient();
+    tokenAccount();
+    tokenClient();
+
     int        i;                        
     int        thr_id[NUM_HANDLER_THREADS];      
     pthread_t  p_threads[NUM_HANDLER_THREADS];   
@@ -306,8 +450,6 @@ int main(int argc, char* argv[]) {
     struct sockaddr_in their_addr; 
     socklen_t sin_size;
 
-    tokenAuth();
-   
     if (argc != 2) {
         fprintf(stderr,"usage: client port_number\n");
         exit(1);
@@ -352,7 +494,6 @@ int main(int argc, char* argv[]) {
         }
         printf("server: got connection from %s\n", \
             inet_ntoa(their_addr.sin_addr));
-        printf("-A-\n");
         add_request(a, &request_mutex, &got_request, new_fd);
 
         a++;
