@@ -267,6 +267,7 @@ char *login(int thread, int socketid) {
 
 char *listAccounts(int socketid, char *auth, char *chosen){
     char *chosenaccount = malloc(255);
+    char *chosenaccount2 = malloc(255);
     int x=0;
     char *acc1 = malloc(255);
     char *acc2 = malloc(255);
@@ -301,7 +302,10 @@ char *listAccounts(int socketid, char *auth, char *chosen){
         send(socketid, acc3, 255, 0);
         recv(socketid, chosenaccount, 255, 0);
     }else if(num == 4){
-        
+        send(socketid, acc1, 255, 0);
+        send(socketid, acc2, 255, 0);
+        send(socketid, acc3, 255, 0);
+        recv(socketid, chosenaccount, 255, 0);
     }else if(num == 5){
         
     }        
@@ -328,6 +332,7 @@ void updateclosebal(int socketid, char *chosenAcc){
     char *fail = "False";
     recv(socketid, newclose, 255, 0);
     newclose[strcspn(newclose, "\n")] = 0;
+    printf("%s\n", newclose);
     printf("<%s>\n", newclose);
     printf("<%s>\n", fail);
     
@@ -347,6 +352,7 @@ void mainmenu(struct request* a_request, int thread_id, char *auth){
     char chosen[255];
     char quit[255];
     char *chosenAcc;
+    char *chosenAcc2;
 
     while(1){
         recv(socketid, chosen, 255, 0);
@@ -382,6 +388,21 @@ void mainmenu(struct request* a_request, int thread_id, char *auth){
             }
         }else if(num == 4){
             printf("%s\n", chosen);
+            chosenAcc = listAccounts(socketid, auth, chosen);
+            if(strcmp(chosenAcc, "e") != 0){
+                chosenAcc2 = listAccounts(socketid, auth, chosen);
+                if(strcmp(chosenAcc2, "e") != 0){
+                    recv(socketid, quit, 255, 0);
+                    quit[strcspn(quit, "\n")] = 0;
+                    if(strcmp(quit, "True") == 0){
+                        retclosebal(socketid, chosenAcc);
+                        updateclosebal(socketid, chosenAcc);
+                        retclosebal(socketid, chosenAcc2);
+                        updateclosebal(socketid, chosenAcc2);
+                    }
+                }
+            }
+            
         }else if(num == 5){
             printf("%s\n", chosen);
         }else if(num == 6){

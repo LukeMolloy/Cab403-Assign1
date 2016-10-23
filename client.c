@@ -14,6 +14,9 @@
 
 	#define RETURNED_ERROR -1
 
+int account1 = 0;
+int account2 = 0;
+
 void welcome(){
 	printf("==========================================\n\n");
 	printf("Welcome to the Online ATM System\n\n");
@@ -101,6 +104,16 @@ char *getaccount(int sockfd, int option){
 	int accnum2 = atoi(acc2);
 	int accnum3 = atoi(acc3);
 
+	if(option == 4){
+		if(account1 == accnum1){
+			accnum1 = 0;
+		}else if(account1 == accnum2){
+			accnum2 = 0;
+		}else if(account1 == accnum3){
+			accnum3 = 0;
+		}
+	}
+
 	printf("Select Account Type\n");
 	//printf("%d\n",accnum1);
 	if((accnum1 != 0) && ((accnum1 % 11) == 0)) {
@@ -133,7 +146,7 @@ char *getaccount(int sockfd, int option){
 	}else if((accnum2 != 0) && ((accnum2 % 13) == 0)) {
 		options[optionCount] = acc2;
 		optionCount++;
-		printf("%d. Credit CardA\n",optionCount);
+		printf("%d. Credit Card\n",optionCount);
 		
 	}
 	//printf("%d\n",accnum3);
@@ -154,9 +167,21 @@ char *getaccount(int sockfd, int option){
 		
 	}
 
+	if(option == 4){
+		options[optionCount] = "External";
+		optionCount++;
+		printf("%d. External Account\n",optionCount);
+	}
+
 	int loop = 0;
 	while(loop == 0){
-		printf("\nEnter your selection (E/e to exit) - ");
+		if(option == 2 && account1 == 0){
+			printf("\nSelect Account to Transfer From (E/e to exit) - ");
+		}else if(option == 4 && account1 != 0){
+			printf("\nSelect Account to Transfer To (E/e to exit) - ");
+		}else{
+			printf("\nEnter your selection (E/e to exit) - ");
+		}
 		char chosen[255];
 		fgets(chosen, 255, stdin);
 		chosen[strcspn(chosen, "\n")] = 0;
@@ -187,16 +212,16 @@ char *getaccount(int sockfd, int option){
 	
 }
 
-double withdraw(int sockfd, int accountnum, char *money){
+double withdraw(int sockfd, int accountnum, double nummoney){
 	char balance[255];
 	char account[255];
 	char *strfinal = malloc(255);
 	recv(sockfd, balance, 255, 0);
-	//printf("Account: <%d>\n", accountnum);
-
+	printf("True1\n");
+	printf("Account1: <%d>\n", accountnum);
+	printf("True\n");
 	double numbalance = atof(balance);
 	//printf("Balance: %.2lf\n", numbalance);
-	double nummoney = atof(money);
 	//printf("Withdrawal: %.2lf\n", nummoney);
 
 	double numfinal = numbalance - nummoney;
@@ -220,24 +245,25 @@ double withdraw(int sockfd, int accountnum, char *money){
 	return numfinal;
 }
 
-double deposit(int sockfd, int accountnum, char *money){
+double deposit(int sockfd, int accountnum, double nummoney){
 	char balance[255];
 	char account[255];
 	char *strfinal = malloc(255);
 	recv(sockfd, balance, 255, 0);
-	//printf("Account: <%d>\n", accountnum);
+	//printf("True2\n");
+	//printf("Account2: <%d>\n", accountnum);
+	//printf("True\n");
 
 	double numbalance = atof(balance);
 	//printf("Balance: %.2lf\n", numbalance);
-	double nummoney = atof(money);
 	//printf("Withdrawal: %.2lf\n", nummoney);
 
 	double numfinal = numbalance + nummoney;
 	//printf("Final Balance: %.2lf\n", numfinal);
 
 	sprintf(strfinal, "%.2lf", numfinal);
-			
-	send(sockfd, strfinal, 255, 0);
+
+	send(sockfd, strfinal, 255, 0);	
 
 	return numfinal;
 }
@@ -249,6 +275,7 @@ void mainmenu(int sockfd){
 	char first_name[255];
 	char last_name[255];
 	char *chosenaccount = malloc(255);
+	char *chosenaccount2 = malloc(255);
 
 	recv(sockfd, client_no, 255, 0);
 	recv(sockfd, first_name, 255, 0);
@@ -268,23 +295,29 @@ void mainmenu(int sockfd){
 			printf("Invalid selection. Please select option from menu!\n\n\n");
 		}else if(num == 1){
 			send(sockfd, first_option, 255, 0);
+			account1 = 1;
 			chosenaccount = getaccount(sockfd, num);
+			account1 = atoi(chosenaccount);
 			displaybal(sockfd, chosenaccount, first_name, last_name);
 			printf("\n");
 		}else if(num == 2){
 			send(sockfd, first_option, 255, 0);
+			double moneycheck = 0;
 			printf("============================================================\n");
 			printf("\n");
+			account1 = 1;
+			account2 = 0;
 			chosenaccount = getaccount(sockfd, num);
+			account1 = atoi(chosenaccount);
 			if(strcmp(chosenaccount, "e") != 0){
 				printf("Enter the amount to withdraw (E/e to exit) : $");
 				fgets(money, 255, stdin);
 				money[strcspn(money, "\n")] = 0;
 				if((strcmp(money,"e") != 0) && (strcmp(money,"E") != 0)){
 					send(sockfd, "True", 255, 0);
-					int account = atoi(chosenaccount);
 					//printf("%d\n", account);
-					double success = withdraw(sockfd, account, money);
+					moneycheck = atof(money);
+					double success = withdraw(sockfd, account1, moneycheck);
 
 					if(success != -5001){
 						printf("\nWithdrawal Completed: Closing Balance : $%.2lf\n\n", success);
@@ -299,24 +332,28 @@ void mainmenu(int sockfd){
 			
 		}else if(num == 3){
 			send(sockfd, first_option, 255, 0);
-			int moneycheck = 1001;
+			double moneycheck = 1001;
 			printf("============================================================\n");
 			printf("\n");
 			printf("The maximum daily deposit is $1000.00!\n\n\n");
+			account1 = 1;
+			account2 = 0;
 			chosenaccount = getaccount(sockfd, num);
-			int account = atoi(chosenaccount);
+			account1 = atoi(chosenaccount);
 			if(strcmp(chosenaccount, "e") != 0){
-				while(moneycheck >= 1001){
+				while((moneycheck >= 1001) || (moneycheck <= 0)){
 					printf("Enter the amount to deposit (E/e to exit) : $");
 					fgets(money, 255, stdin);
 					money[strcspn(money, "\n")] = 0;
 					if((strcmp(money, "e") != 0) && (strcmp(money, "E") != 0)){
 						send(sockfd, "True", 255, 0);
-						moneycheck = atoi(money);
+						moneycheck = atof(money);
 						if(moneycheck >= 1001){
 							printf("\nYou cannot deposit more then $1000 in a single transaction!\n\n");
+						}else if(moneycheck <= 0){
+							printf("\nYou cannot enter amounts of $0.00 or less!\n\n");
 						}else{
-							double success = deposit(sockfd, account, money);
+							double success = deposit(sockfd, account1, moneycheck);
 							printf("\nDeposit Completed: Closing Balance : $%.2lf\n\n", success);
 							printf("============================================================\n\n");
 							//break;
@@ -328,6 +365,59 @@ void mainmenu(int sockfd){
 				}
 			}
 			
+		}else if(num == 4){
+			send(sockfd, first_option, 255, 0);
+			printf("============================================================\n");
+			printf("\n");
+			double moneycheck = 1001;
+			double acc1bal = 0;
+			double acc2bal = 0;
+			account1 = 0;
+			account2 = 0;
+			chosenaccount = getaccount(sockfd, 2);
+			if(strcmp(chosenaccount, "e") != 0){
+				account1 = atoi(chosenaccount);
+				chosenaccount2 = getaccount(sockfd, num);
+				if(strcmp(chosenaccount2, "e") != 0){
+					while((moneycheck <= 0) || (acc1bal <= 0)){
+						printf("%s\n", chosenaccount2);
+						if(strcmp(chosenaccount2, "External") == 0){
+							printf("True\n");
+						}
+
+						account2 = atoi(chosenaccount2);
+
+						printf("Enter the amount to transfer (E/e to exit) : $");
+						fgets(money, 255, stdin);
+						money[strcspn(money, "\n")] = 0;
+						//printf("True\n");
+						if((strcmp(money, "e") != 0) && (strcmp(money, "E") != 0)){
+							//printf("SuperTrue\n");
+							send(sockfd, "True", 255, 0);
+							//printf("SuperTrue\n");
+							moneycheck = atof(money);
+
+							if(moneycheck <= 0){
+								printf("\nYou cannot enter amounts of $0.00 or less!\n\n");
+							}else{
+								acc1bal= withdraw(sockfd, account1, moneycheck);
+								if(acc1bal != -5001){
+									acc2bal = deposit(sockfd, account2, moneycheck);
+									printf("\nDeducted $%.2lf From: Account %d - Closing Balance - $%.2lf\n\n", moneycheck, account1, acc1bal);
+									printf("\nTransfer $%.2lf Dest: Account %d - Closing Balance - $%.2lf\n\n", moneycheck, account2, acc2bal);
+								}else{
+									printf("\nInsufficient Funds - Unable to process request\n\n");
+								}
+								printf("============================================================\n\n");
+							}
+						}else{
+							send(sockfd, "False", 255, 0);
+						}
+					}
+				}
+				
+			}
+
 		}else if(num == 5){
 			send(sockfd, first_option, 255, 0);
 		}else if(num == 6){
